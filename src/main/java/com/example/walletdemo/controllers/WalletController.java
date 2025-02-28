@@ -195,7 +195,7 @@ public class WalletController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Account pending approval");
             }
 
-            // Email transaction summary directly without any approval step
+            // Email transaction summary directly
             transactionService.emailTransactionSummary(user);
 
             return ResponseEntity.ok("Transaction summary has been emailed to your address (" + user.getEmail() + ")");
