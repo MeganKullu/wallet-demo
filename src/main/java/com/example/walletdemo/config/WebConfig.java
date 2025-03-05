@@ -13,6 +13,7 @@ public class WebConfig implements WebMvcConfigurer {
                 .allowedOrigins("https://walletdemofrontend1.vercel.app", "https://walletdemo-adminfrontend.vercel.app")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("Authorization", "Content-Type","X-Requested-With")
+                .allowCredentials(true)
                 .maxAge(3600);
     }
 }
