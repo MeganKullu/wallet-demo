@@ -10,7 +10,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOrigins("https://walletdemofrontend1.vercel.app")
+                .allowedOrigins("https://walletdemofrontend1.vercel.app", "https://walletdemo-adminfrontend.vercel.app")
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("Authorization", "Content-Type","X-Requested-With")
                 .maxAge(3600);

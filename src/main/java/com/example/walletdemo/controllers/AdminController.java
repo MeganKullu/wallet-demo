@@ -3,8 +3,6 @@ package com.example.walletdemo.controllers;
 import com.example.walletdemo.dto.TransactionDTO;
 import com.example.walletdemo.dto.TransactionSummaryDTO;
 import com.example.walletdemo.dto.UserDTO;
-import com.example.walletdemo.models.Transaction;
-import com.example.walletdemo.models.User;
 import com.example.walletdemo.services.TransactionService;
 import com.example.walletdemo.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;

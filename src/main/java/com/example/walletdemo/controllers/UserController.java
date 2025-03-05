@@ -19,7 +19,7 @@ import java.util.Map;
 
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/api/user")
 
 public class UserController {
 
@@ -29,11 +29,6 @@ public class UserController {
     @Autowired
     private JwtService jwtService;
 
-    @PostMapping("/register")
-    public ResponseEntity<String> registerUser(@RequestBody RegisterUserRequest request){
-        userService.registerUser(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body("Registered successfully! Please await admin approval.");
-    }
 
     @PostMapping("/setup-pin")
     public ResponseEntity<String> setupPin(@RequestBody SetupPinRequest request, HttpServletRequest httpRequest) {

@@ -1,5 +1,6 @@
 package com.example.walletdemo.controllers;
 
+import com.example.walletdemo.dto.RegisterUserRequest;
 import com.example.walletdemo.models.User;
 import com.example.walletdemo.services.JwtService;
 import com.example.walletdemo.services.UserService;
@@ -68,5 +69,11 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Invalid username or password"));
         }
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<String> registerUser(@RequestBody RegisterUserRequest request){
+        userService.registerUser(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body("Registered successfully! Please await admin approval.");
     }
 }

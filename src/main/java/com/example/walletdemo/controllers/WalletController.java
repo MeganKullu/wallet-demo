@@ -36,41 +36,6 @@ public class WalletController {
     @Autowired
     private TransactionService transactionService;
 
-    // Update transfer method
-    @PostMapping("/transfer")
-    public ResponseEntity<String> transfer(
-            @RequestBody TransferWithPinRequest transferRequest,
-            HttpServletRequest request
-    ) {
-        // Extract JWT from request header
-        String token = request.getHeader("Authorization").replace("Bearer ", "");
-        String email = jwtService.extractEmail(token);
-
-        // Find user and wallet
-        User sender = userService.findByEmail(email);
-
-        // Check if user is approved
-        if (!sender.isApproved()) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Account pending approval");
-        }
-
-        // Verify PIN before proceeding
-        if (!userService.verifyPin(email, transferRequest.getPin())) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid PIN");
-        }
-
-        // Check if PIN is set
-        if (!sender.isPinSet()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("PIN not set. Please set your PIN first.");
-        }
-
-        Wallet senderWallet = sender.getWallet();
-
-        // Perform transfer
-        walletService.transfer(senderWallet.getUser().getId(), transferRequest);
-
-        return ResponseEntity.ok("Transfer Successful!");
-    }
 
     // Transfer by email method
     @PostMapping("/transfer-by-email")
@@ -148,37 +113,6 @@ public class WalletController {
         return ResponseEntity.ok(walletInfo);
     }
 
-    // Checking the pin status
-    @GetMapping("/check-pin-status")
-    public ResponseEntity<?> checkPinStatus(HttpServletRequest request) {
-        try {
-            // Extract JWT from request header
-            String token = request.getHeader("Authorization").replace("Bearer ", "");
-            String email = jwtService.extractEmail(token);
-
-            // Find user
-            User user = userService.findByEmail(email);
-
-            // Check if user is approved
-            if (!user.isApproved()) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("error", "Account pending approval"));
-            }
-
-            Map<String, Boolean> response = new HashMap<>();
-            response.put("isPinSet", user.isPinSet());
-
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            System.err.println("Error checking PIN status: " + e.getMessage());
-
-            // Return a generic response
-            Map<String, Boolean> errorResponse = new HashMap<>();
-            errorResponse.put("isPinSet", false);
-            return ResponseEntity.ok(errorResponse);
-        }
-    }
-
     // get transaction summary
     @PostMapping("/email-transaction-summary")
     public ResponseEntity<String> emailTransactionSummary(HttpServletRequest request) {
@@ -195,12 +129,97 @@ public class WalletController {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Account pending approval");
             }
 
-            // Email transaction summary directly
+            // Email transaction summary directly without any approval step
             transactionService.emailTransactionSummary(user);
 
             return ResponseEntity.ok("Transaction summary has been emailed to your address (" + user.getEmail() + ")");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Failed to email transaction summary: " + e.getMessage());
+        }
+    }
+
+    //deposit funds
+    @PostMapping("/deposit")
+    public ResponseEntity<?> deposit(@RequestBody Map<String, Double> request, HttpServletRequest httpRequest) {
+        try {
+            String token = httpRequest.getHeader("Authorization").replace("Bearer ", "");
+            String email = jwtService.extractEmail(token);
+            User user = userService.findByEmail(email);
+
+            // Check if user is approved
+            if (!user.isApproved()) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Account pending approval"));
+            }
+
+            Double amount = request.get("amount");
+            if (amount == null || amount <= 0) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Invalid amount"));
+            }
+
+            walletService.deposit(user.getId(), amount);
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "Deposit successful",
+                    "amount", amount,
+                    "newBalance", user.getWallet().getBalance() + amount
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+
+    //withdraw funds
+    @PostMapping("/withdraw")
+    public ResponseEntity<?> withdraw(@RequestBody Map<String, Object> request, HttpServletRequest httpRequest) {
+        try {
+            String token = httpRequest.getHeader("Authorization").replace("Bearer ", "");
+            String email = jwtService.extractEmail(token);
+            User user = userService.findByEmail(email);
+
+            // Check if user is approved
+            if (!user.isApproved()) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Account pending approval"));
+            }
+
+            // Verify PIN before proceeding
+            String pin = (String) request.get("pin");
+            if (pin == null || !userService.verifyPin(email, pin)) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Invalid PIN"));
+            }
+
+            // Check if PIN is set
+            if (!user.isPinSet()) {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body(Map.of("error", "PIN not set. Please set your PIN first."));
+            }
+
+            Double amount = ((Number) request.get("amount")).doubleValue();
+            if (amount == null || amount <= 0) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Invalid amount"));
+            }
+
+            // Check if user has sufficient balance
+            if (user.getWallet().getBalance() < amount) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("error", "Insufficient funds"));
+            }
+
+            walletService.withdraw(user.getId(), amount);
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "Withdrawal successful",
+                    "amount", amount,
+                    "newBalance", user.getWallet().getBalance() - amount
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", e.getMessage()));
         }
     }
 }
