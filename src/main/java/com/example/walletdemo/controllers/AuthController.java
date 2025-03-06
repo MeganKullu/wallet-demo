@@ -48,13 +48,9 @@ public class AuthController {
             // Get user details
             UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
-            // Check if user is approved (add this part)
+            // Check if user is approved
             User user = userService.findByEmail(email);
-            if (!user.isApproved()) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                        .body(Map.of("error", "Account pending approval", "approved", false));
-            }
-
+//
             // Extract the role from authorities
             String role = userDetails.getAuthorities().stream()
                     .map(GrantedAuthority::getAuthority)
@@ -62,9 +58,13 @@ public class AuthController {
                     .orElse("ROLE_USER")
                     .replace("ROLE_", "");
 
-            String token = jwtService.generateToken(userDetails.getUsername(), role);
+            String token = jwtService.generateToken(userDetails.getUsername(), role, user.isApproved());
 
-            return ResponseEntity.ok(Map.of("token", token, "role", role, "approved", true));
+            return ResponseEntity.ok(Map.of(
+                    "token", token,
+                    "role", role,
+                    "approved", user.isApproved()
+            ));
         } catch (BadCredentialsException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Invalid username or password"));
